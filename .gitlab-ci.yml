@@ -1,0 +1,21 @@
+image: node:latest
+
+cache:
+  paths:
+    - node_modules/
+  
+before_script:
+  - npm install
+
+test:
+  stage: test
+  tags:
+    - exec-docker
+  script: ember test
+
+# - stage: deploy
+#    if: (type = push) AND ((branch = dev-1) OR (branch = master))
+#    skip_cleanup: false
+#    env:
+#      - EMBER_VERSION=release
+#    script: ember build --prod && chmod +x .travis/docker_push.sh && .travis/docker_push.sh
