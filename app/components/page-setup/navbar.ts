@@ -1,14 +1,18 @@
 import Component from '@glimmer/component';
-import { tracked } from '@glimmer/tracking';
+import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import LandscapeTokenService from 'explorviz-frontend/services/landscape-token';
+import Auth from 'explorviz-frontend/services/auth';
 
 export default class Navbar extends Component {
-  @tracked
-  navbarActive = true;
+  @service('landscape-token')
+  tokenService!: LandscapeTokenService;
+
+  @service('auth')
+  auth!: Auth;
 
   @action
-  toggleNavbar(this: Navbar) {
-    this.navbarActive = !this.navbarActive;
+  logout() {
+    this.auth.logout();
   }
-
 }

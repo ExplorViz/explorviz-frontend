@@ -5,26 +5,26 @@ import $ from 'jquery';
 declare const THREEx: any;
 
 /**
-* TODO
-*
-* @class ThreejsPerformance
+* @class THREEPerformance
 *
 * @module explorviz
 * @submodule visualization.rendering
 */
-export default class ThreejsPerformance {
+export default class THREEPerformance {
+  // Can display information like fps or memory usage
+  stats: any = new Stats();
 
-  stats:any = new Stats();
-  threexStats:any = new THREEx.RendererStats();
+  // Displays data about current scene and the currently active renderer
+  threexStats: any = new THREEx.RendererStats();
 
-  // @Override
   constructor() {
     // 0: fps, 1: ms, 2: mb, 3+: custom or just click the window to toggle
-    this.stats.showPanel(0); 
-    this.stats.dom.style.position = "absolute";
-    this.stats.dom.style.bottom = "368px";
+    this.stats.showPanel(0);
+    // Position performance panel at left edge of rendering canvas
+    this.stats.dom.style.position = 'absolute';
+    this.stats.dom.style.bottom = '368px';
     this.stats.dom.style.top = null;
-    this.stats.dom.style.zIndex = "100";
+    this.stats.dom.style.zIndex = '100';
     this.stats.dom.style.left = '0px';
     $('#rendering').append(this.stats.dom);
 
@@ -33,9 +33,12 @@ export default class ThreejsPerformance {
     $('#rendering').append(this.threexStats.domElement);
   }
 
+  /**
+   * Removes performance panel (including fps and renderer stats) from
+   * the DOM.
+   */
   removePerformanceMeasurement() {
     $(this.stats.dom).remove();
     $(this.threexStats.domElement).remove();
   }
-
 }

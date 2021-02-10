@@ -6,5 +6,8 @@ module.exports = {
     Setting `disableAnalytics` to true will prevent any data from being sent.
   */
   "disableAnalytics": true,
-  "host": "0.0.0.0"
+  // Use SSL for development server by default
+  //"ssl": true,
+  //"ssl-key": ".ssl/server.key",
+  //"ssl-cert": ".ssl/server.crt"
 }

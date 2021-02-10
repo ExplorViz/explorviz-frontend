@@ -1,9 +1,7 @@
-<div class="d-flex flex-row vh-100">
-  {{#if (and this.session.isAuthenticated (not this.loadUserAndSettings.isRunning))}}
+<div id="ember-right-click-menu-wormhole"></div>
+<div id="main-container">
+  {{#if this.auth.user}}
     <PageSetup::Navbar />
   {{/if}}
-
-  <div id="vizContainer" class="main-content">
-    {{outlet}}
-  </div>
+  {{outlet}}
 </div>

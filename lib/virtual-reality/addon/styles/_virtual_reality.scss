@@ -1,0 +1,22 @@
+#VrButton {
+  cursor: pointer;
+  left: calc(50% - 50px);
+  width: 100px;
+  opacity: 0.5;
+  position: absolute;
+  bottom: 10px;
+  padding: 12px 6px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.1);
+  color: #fff;
+  font: normal 13px sans-serif;
+  text-align: center;
+  opacity: 0.5;
+  outline: none;
+  z-index: 999;
+}
+
+#VrButton:hover {
+  opacity: 1;
+}

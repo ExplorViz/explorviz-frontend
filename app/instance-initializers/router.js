@@ -1,4 +1,4 @@
-import Router from "explorviz-frontend/router";
+import Router from 'explorviz-frontend/router';
 
 /**
 * Extending the Ember router for mapping nested routes under configuration from extensions.
@@ -14,5 +14,5 @@ export function initialize(/* appInstance */) {
 
 export default {
   name: 'router',
-  initialize
+  initialize,
 };

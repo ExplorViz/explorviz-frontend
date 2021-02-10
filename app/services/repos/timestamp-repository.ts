@@ -1,9 +1,13 @@
 import Service from '@ember/service';
-import { inject as service } from "@ember/service";
+
 import Evented from '@ember/object/evented';
 import debugLogger from 'ember-debug-logger';
-import Timestamp from 'explorviz-frontend/models/timestamp';
-import DS from 'ember-data';
+
+export interface Timestamp {
+  id: string,
+  timestamp: number,
+  totalRequests: number,
+}
 
 /**
 * Handles all landscape-related timestamps within the application, especially for the timelines
@@ -12,61 +16,43 @@ import DS from 'ember-data';
 * @extends Ember.Service
 */
 export default class TimestampRepository extends Service.extend(Evented) {
-
   debug = debugLogger();
 
-  @service('store') store !: DS.Store;
+  private timelineTimestamps: Map<string, Timestamp[]> = new Map();
 
-  latestTimestamp: Timestamp|null = null;
-  timelineTimestamps: Timestamp[] = [];
+  getTimestamps(landscapeToken: string) {
+    return this.timelineTimestamps.get(landscapeToken);
+  }
 
-  replayTimelineTimestamps: Timestamp[] = [];
+  getLatestTimestamp(landscapeToken: string) {
+    const timestamps = this.getTimestamps(landscapeToken);
+    if (timestamps) {
+      return timestamps[timestamps.length - 1];
+    }
+
+    return undefined;
+  }
+
+  addTimestamp(landscapeToken: string, timestamp: Timestamp) {
+    const timestamps = this.timelineTimestamps.get(landscapeToken);
+    if (timestamps) {
+      this.timelineTimestamps.set(landscapeToken, [...timestamps, timestamp]);
+    } else {
+      this.timelineTimestamps.set(landscapeToken, [timestamp]);
+    }
+  }
 
   /**
    * Triggers the 'updated' event in the timeline for updating the chart
    * @method triggerTimelineUpdate
    */
   triggerTimelineUpdate() {
-    this.trigger("updated", this.get('latestTimestamp'));
+    this.trigger('updated');
   }
-
-  // TODO triggerTimelineUpdate for replay timeline
-  fetchReplayTimestamps() {
-    const self = this;
-    self.debug("Start fetching replay timestamps");
-
-    self.get('store').query('timestamp', { type: 'replay' }).then(success, failure).catch(error);
-
-    function success(fetchedTimestamps: DS.PromiseArray<Timestamp>) {
-
-      const replayTimestamps: Timestamp[] = [];
-
-      fetchedTimestamps.forEach(timestamp => {
-        replayTimestamps.push(timestamp);
-      });
-
-      self.set('replayTimelineTimestamps', replayTimestamps);
-      self.triggerTimelineUpdate();
-      self.debug("Replay Timestamps successfully loaded!");
-    }
-
-    function failure(e: any) {
-      self.set('timelineTimestamps', []);
-      self.debug("Replay Timestamps couldn't be requested!", e);
-    }
-
-    function error(e: any) {
-      self.set('timelineTimestamps', []);
-      self.debug("Error when fetching replay timestamps: ", e);
-    }
-
-    self.debug("End fetching replay timestamps");
-  }
-
 }
 
-declare module "@ember/service" {
+declare module '@ember/service' {
   interface Registry {
-    "repos/timestamp-repository": TimestampRepository;
+    'repos/timestamp-repository': TimestampRepository;
   }
 }

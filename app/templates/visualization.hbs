@@ -1,72 +1,117 @@
-<div class="row" style="max-height:100%">
-  <div class="col-12" id="vizspace" {{did-resize this.resize debounce=100}}>
-    {{#if showLandscape}}
-    {{#if landscapeRepo.latestLandscape.systems}}
-    {{visualization/page-setup/visualization-navbar
-          content=(array
-            (component "visualization/page-setup/navbar/reset-visualization")
-            (component "visualization/page-setup/navbar/pause-reload")
-            (component "visualization/page-setup/navbar/event-opener")
-            (component "visualization/page-setup/navbar/landscape-downloader" landscape=landscapeRepo.latestLandscape)
-          )
-        }}
-    <div id="rendering">
-      {{visualization/rendering/landscape-rendering}}
-      <!-- popup(s) -->
-      {{visualization/rendering/popups/popup-coordinator
-          popupData=additionalData.popupContent}}
-    </div>
-    {{else}}
-    <div class="container-fluid">
-      <div class="jumbotron">
-        <h2>No Landscape Found!</h2>
-        <p>A new landscape will be fetched every 10 seconds.</p>
-      </div>
-      <div class="spinner-center-3" role="status"></div>
-    </div>
-    {{/if}}
-    {{else}}
-    {{visualization/page-setup/visualization-navbar
-        content=(array
-          (component "visualization/page-setup/navbar/reset-visualization")
-          (component "visualization/page-setup/navbar/pause-reload")
-          (component "visualization/page-setup/navbar/trace-overview")
-          (component "visualization/page-setup/navbar/sql-opener")
-          (component "visualization/page-setup/navbar/landscape-downloader" landscape=landscapeRepo.latestLandscape)
-          (component "visualization/page-setup/navbar/application-opener")
-          (component "visualization/page-setup/navbar/application-search")    
-        )
-      }}
-    <div id="rendering">
-      <div style="position: absolute!important" class="pl-1">
-        {{#bs-button onClick=(action "openLandscapeView") type="secondary" outline=true title="Back to Landscape"}}
+{{add-listener
+  this.landscapeListener
+  "newLandscapeData"
+  this.receiveNewLandscapeData
+}}
+
+{{add-listener
+  this.timestampRepo
+  "updated"
+  this.updateTimestampList
+}}
+
+<div id="vizspace">
+  {{#if this.showVR}}
+    <VrMultiUser
+      @id="landscape1"
+      @landscapeData={{this.landscapeData}}
+      @font={{@model}}
+    />
+    <div class="position-absolute mt-6 ml-3">
+      <BsButton
+        @onClick={{this.openLandscapeView}}
+        @type="secondary"
+        @outline={{true}}
+        @title="Back to Landscape View"
+      >
         {{svg-jar "reply" class="octicon align-middle"}}
-        {{/bs-button}}
-      </div>
-      {{visualization/rendering/application-rendering latestApplication=landscapeRepo.latestApplication}}
-      <!-- popup(s) -->
-      {{visualization/rendering/popups/popup-coordinator
-        popupData=additionalData.popupContent}}
+      </BsButton>
     </div>
+  {{else}}
+    {{#if this.showLandscapeView}}
+      {{#if this.isLandscapeExistendAndEmpty}}
+        <div class="container-fluid mt-6">
+          <div class="jumbotron">
+            <h2>Empty Landscape received!</h2>
+            <p>A new landscape will be fetched every 10 seconds.</p>
+          </div>
+          <div class="spinner-center-3" role="status"></div>
+        </div>
+      {{else if this.allLandscapeDataExistsAndNotEmpty}}
+        <Visualization::Rendering::LandscapeRendering
+          @landscapeData={{this.landscapeData}}
+          @font={{@model}}
+          @components={{this.components}}
+          @removeComponent={{this.removeComponent}}
+          @closeDataSelection={{this.closeDataSelection}}
+          @openDataSelection={{this.openDataSelection}}
+          @showDataSelection={{this.showDataSelection}}
+          @addComponent={{this.addComponent}}
+          @showApplication={{this.showApplication}}
+          @toggleVisualizationUpdating={{this.toggleVisualizationUpdating}}
+          @visualizationPaused={{this.visualizationPaused}}
+          @switchToVR={{this.switchToVR}}
+        />
+      {{else}}
+        <div class="container-fluid mt-6">
+          <div class="jumbotron">
+            <h2>No Landscape found!</h2>
+            <p>A new landscape will be fetched every 10 seconds.</p>
+          </div>
+          <div class="spinner-center-3" role="status"></div>
+        </div>
+      {{/if}}
+    {{else if this.showApplicationView}}
+      <Visualization::Rendering::ApplicationRendering
+        @landscapeData={{this.landscapeData}}
+        @addComponent={{this.addComponent}}
+        @font={{@model}}
+        @components={{this.components}}
+        @removeComponent={{this.removeComponent}}
+        @openDataSelection={{this.openDataSelection}}
+        @closeDataSelection={{this.closeDataSelection}}
+        @showDataSelection={{this.showDataSelection}}
+        @toggleVisualizationUpdating={{this.toggleVisualizationUpdating}}
+        @visualizationPaused={{this.visualizationPaused}}
+      />
+      <div class="position-absolute mt-6 ml-3">
+        <BsButton
+          title="Back to Landscape"
+          @onClick={{this.openLandscapeView}}
+          @type="secondary"
+          @outline={{true}}
+        >
+          {{svg-jar "reply" class="octicon align-middle"}}
+        </BsButton>
+      </div>
     {{/if}}
-    <!-- timeline -->
-    <div id="timeline-content">
-      {{#bs-button
-        onClick=(action "toggleTimeline")
-        type="secondary"
-        outline=true
-        class="btn-timeline"
-        title=(if renderingService.showTimeline "Hide Timeline" "Show Timeline")
+  {{/if}}
+</div>
+{{!-- timeline --}}
+{{#unless this.showVR}}
+  <div id="timeline-content">
+    <BsButton
+      @onClick={{this.toggleTimeline}}
+      @type="secondary"
+      @outline={{true}}
+      class="btn-timeline"
+      @title={{if this.showTimeline "Hide Timeline" "Show Timeline"}}
+    >
+      {{#unless this.showTimeline}}
+        <span class="pr-1">Show Timeline</span>
+      {{/unless}}
+      {{svg-jar
+        "chevron-up"
+        id="hidetimeline-icon"
+        class=(if this.showTimeline "octicon align-middle hidetimeline-icon-down" "octicon align-middle")
       }}
-      {{#unless renderingService.showTimeline}}<span class="pr-1">Show Timeline</span>{{/unless}}
-      {{svg-jar "chevron-up" id="hidetimeline-icon" class=(if renderingService.showTimeline "octicon align-middle hidetimeline-icon-down" "octicon align-middle")}}
-      {{/bs-button}}
-      <div id="timeline" class="timeline {{unless renderingService.showTimeline "timelinehide"}}">
-        {{visualization/page-setup/timeline/plotly-timeline timestamps=timestampRepo.timelineTimestamps clicked=(action 'timelineClicked') setChildReference=(action 'getTimelineReference')}}
-      </div>
+    </BsButton>
+    <div id="timeline" class="timeline {{unless this.showTimeline "timelinehide"}}">
+      <Visualization::PageSetup::Timeline::PlotlyTimeline
+        @timestamps={{this.timelineTimestamps}}
+        @clicked={{this.timelineClicked}}
+        @setChildReference={{this.getTimelineReference}}
+      />
     </div>
   </div>
-  <div class="col-4 hide" id="dataselection">
-    {{visualization/page-setup/sidebar/data-selection}}
-  </div>
-</div>
+{{/unless}}

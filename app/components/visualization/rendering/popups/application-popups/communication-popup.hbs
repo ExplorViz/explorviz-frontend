@@ -1,0 +1,23 @@
+<h3 class="popover-header">
+  <div style="font-weight:bold;text-align:center;">
+    {{this.sourceClazz}}
+    {{#if this.isBidirectional}}
+      {{svg-jar "arrow-both" class="octicon align-middle"}}
+    {{else}}
+      {{svg-jar "arrow-right" class="octicon align-middle"}}
+    {{/if}}
+    {{this.targetClazz}}
+  </div>
+</h3>
+<div class="popover-body" style="white-space: nowrap;">
+  <table style="width:100%">
+    <tbody>
+      <tr>
+        <td>&nbsp;{{svg-jar "code" class="octicon align-middle"}}&nbsp;Requests:</td>
+        <td style="text-align:right;padding-left:10px;">
+          {{this.requests}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

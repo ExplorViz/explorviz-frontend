@@ -1,0 +1,25 @@
+#token-selection-table {
+  > tbody > tr, > thead > tr > th {
+    cursor: pointer;
+  }
+  
+  min-width: 400px;
+  width: auto;
+}
+
+#token-selection-table > tbody > tr:hover {
+  background-color: #bfbfbf;
+  transition: all 0.1s ease-in-out;
+}
+
+.button-svg-with-hover {
+  all: unset;
+}
+
+.button-svg-with-hover:focus {
+  outline: none;
+}
+
+.button-svg-with-hover:hover {
+  color: #fdfdfd;
+}

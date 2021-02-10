@@ -1,0 +1,18 @@
+<div class="container overflow-hidden mt-5 mb-5 d-flex flex-column flex-1">
+  <h3 class="text-center mt-5 mb-5">Select Landscape Token</h3>
+  <div class="d-flex flex-row justify-content-center overflow-auto">
+    <TokenSelection
+      @selectToken={{this.selectToken}}
+      @tokens={{@model}}
+      @currentToken={{this.tokenService.token}}
+      @deleteToken={{this.deleteToken}}
+    />
+  </div>
+  <BsButton
+    @type="primary"
+    class="align-self-center pt-2 px-3"
+    @onClick={{this.createToken}}
+  >
+    {{svg-jar "plus" class="octicon"}}
+  </BsButton>
+</div>

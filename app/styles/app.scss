@@ -1,13 +1,43 @@
-@import "ember-bootstrap/bootstrap";
 @import "_main";
-@import "_discovery";
 @import "_sidebar";
-@import "_usermanagement";
-@import "_navbar";
-@import "_footer";
 @import "_timeline";
 @import "_alertify";
 @import "_pagenavigation";
+@import "_navbar";
+@import "_visualization_navbar";
+@import "_token_selection";
+@import '_right_click_menu';
+// located in lib/virtual-reality/addon/styles
+@import "_virtual_reality";
 
+@import "ember-bootstrap/bootstrap";
 @import 'ember-power-select/themes/bootstrap';
 @import "ember-power-select";
+@import 'ember-right-click-menu';
+
+
+.disable-select {
+  user-select: none; /* supported by Chrome and Opera */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+.card-shadow:hover {
+  -webkit-box-shadow: 0px 0px 21px -2px rgba(0,0,0,0.2);
+  -moz-box-shadow: 0px 0px 21px -2px rgba(0,0,0,0.2);
+  box-shadow: 0px 0px 21px -2px rgba(0,0,0,0.2);
+}
+
+.card-shadow {
+  transition: box-shadow 0.2s cubic-bezier(0.15, 0.85, 0.45, 1);
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 400;
+}
+
+#ember-right-click-menu-wormhole > ul {
+  z-index: 100000;
+}

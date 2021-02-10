@@ -1,0 +1,27 @@
+<h3 class="popover-header">
+  <div style="font-weight:bold;text-align:center;">{{this.displayName}}</div>
+</h3>
+<div class="popover-body" style="white-space: nowrap;">
+  <table style="width:100%">
+    <tbody>
+      <tr>
+        <td>IP:</td>
+        <td style="text-align:right;padding-left:10px;">
+          {{@node.ipAddress}}
+        </td>
+      </tr>
+      <tr>
+        <td>Hostname:</td>
+        <td style="text-align:right;padding-left:10px;">
+          {{@node.hostName}}
+        </td>
+      </tr>
+      <tr>
+        <td># of applications:</td>
+        <td style="text-align:right;padding-left:10px;">
+          {{@node.applications.length}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

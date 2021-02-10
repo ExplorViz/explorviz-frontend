@@ -1,222 +1,90 @@
-import Object from '@ember/object';
-import THREE from "three";
-import { shortenString } from '../helpers/string-helpers';
-import { inject as service } from "@ember/service";
+import THREE from 'three';
+import ClazzMesh from 'explorviz-frontend/view-objects/3d/application/clazz-mesh';
+import ClazzLabelMesh from 'explorviz-frontend/view-objects/3d/application/clazz-label-mesh';
+import ComponentMesh from 'explorviz-frontend/view-objects/3d/application/component-mesh';
+import ComponentLabelMesh from 'explorviz-frontend/view-objects/3d/application/component-label-mesh';
+import FoundationMesh from 'explorviz-frontend/view-objects/3d/application/foundation-mesh';
 
-export default Object.extend({
+/**
+ * Positions label of a given component mesh. This function is standalone and not part
+ * of addComponentTextLabel because the position of a component label needs to be adapted
+ * every time a component is opened or closed.
+ *
+ * @param boxMesh Mesh which is labeled
+ */
+export function positionBoxLabel(boxMesh: ComponentMesh|FoundationMesh) {
+  const label = boxMesh.labelMesh;
 
-  labels: null,
-  textMaterialFoundation: null,
-  textMaterialComponent: null,
-  textMaterialClazz: null,
-  currentUser: service(),
+  if (!label) { return; }
 
-  session: service(),
-  configuration: service(),
+  const foundationOffset = label.minHeight;
 
-  init() {
-    this._super(...arguments);
-    this.set('labels', []);
+  label.geometry.center();
 
-    const configuration : any = this.get('configuration');
-    const applicationColors : any = configuration.get('applicationColors');
+  // Set y-position just above the box of the parent mesh
+  label.position.y = boxMesh.geometry.parameters.height / 2 + 0.01;
 
-    this.set('textMaterialFoundation',
-      new THREE.MeshBasicMaterial({
-        color: applicationColors.foundationText
-      })
-    );
+  // Align text with component parent
+  label.rotation.x = -(Math.PI / 2);
+  label.rotation.z = -(Math.PI / 2);
 
-    this.set('textMaterialComponent',
-      new THREE.MeshBasicMaterial({
-        color: applicationColors.componentText
-      })
-    );
-
-    this.set('textMaterialClazz',
-      new THREE.MeshBasicMaterial({
-        color: applicationColors.clazzText
-      })
-    );
-  },
-
-  createLabel(parentMesh: THREE.Mesh, parentObject: THREE.Object3D, font: THREE.Font, transparent: boolean) {
-    let currentUser: any = this.get('currentUser');
-    const bBoxParent = new THREE.Box3().setFromObject(parentMesh);
-
-    const worldParent = new THREE.Vector3();
-    worldParent.setFromMatrixPosition(parentMesh.matrixWorld);
-
-    const labels: any = this.get('labels');
-
-    const oldLabel = labels.filter(function (label: THREE.Object3D) {
-      const data = label.userData;
-
-      return data.name === parentMesh.userData.name &&
-        label.userData.parentPos.equals(worldParent);
-    });
-
-    // Check if TextGeometry already exists
-    if (oldLabel && oldLabel[0]) {
-      // Check if transparency changed, therefore requires an update
-      if (transparent && !oldLabel[0].material.transparent) {
-        const newMaterial = oldLabel[0].material.clone();
-        newMaterial.transparent = true;
-        newMaterial.opacity = currentUser.getPreferenceOrDefaultValue('rangesetting', 'appVizTransparencyIntensity');
-        oldLabel[0].material = newMaterial;
-      }
-      else if (!transparent && oldLabel[0].material.transparent) {
-        const newMaterial = oldLabel[0].material.clone();
-        newMaterial.transparent = false;
-        newMaterial.opacity = 1.0;
-        oldLabel[0].material = newMaterial;
-      }
-
-      parentObject.add(oldLabel[0]);
-    }
-    // New TextGeometry necessary
-    else {
-      let { name: labelString, foundation, type, opened } = parentMesh.userData;
-
-      // Text properties for TextGeometry
-      const textSize = 2;
-      const textHeight = 0.1;
-      const curveSegments = 1;
-
-      // Fixed text length for clazz labels
-      if (type === 'clazz' && labelString.length > 10) {
-        labelString = shortenString(labelString, 8);
-      }
-
-      let textGeometry = new THREE.TextGeometry(labelString, {
-        font,
-        size: textSize,
-        height: textHeight,
-        curveSegments
-      });
-
-      let material;
-      let foundationTextMaterial : any = this.get('textMaterialFoundation');
-      let componentTextMaterial : any = this.get('textMaterialComponent');
-      let clazzTextMaterial : any = this.get('textMaterialClazz');
-
-      if (foundation && foundationTextMaterial) {
-        material = foundationTextMaterial.clone();
-      } else if (type === 'clazz' && clazzTextMaterial) {
-        material = clazzTextMaterial.clone();
-      } else if (type === 'package' && componentTextMaterial) {
-        material = componentTextMaterial.clone();
-      } else {
-        return;
-      }
-
-      if (!material) {
-        return;
-      }
-
-      // Apply transparency / opacity
-      if (transparent) {
-        material.transparent = true;
-        material.opacity = currentUser.getPreferenceOrDefaultValue('rangesetting', 'appVizTransparencyIntensity');
-      }
-
-      let textMesh = new THREE.Mesh(textGeometry, material);
-      let textWidth = computeBoxSize(textGeometry).x;
-      let parentBoxWidth = computeBoxSize(parentMesh.geometry).z;
-
-      // Properties for label positioning, scaling and length
-      const margin = 0.5;
-      const staticScaleFactor = 0.3;
-      const minTextHeight = 1;
-      const minTextLength = 3;
-
-      // Static size for clazz text
-      if (type === 'clazz') {
-        textGeometry.scale(staticScaleFactor, staticScaleFactor, staticScaleFactor);
-      }
-      // Handle label which is too big for parent component
-      else if (textWidth > (parentBoxWidth - margin)) {
-        // Compute factor to fit text to parent (including small margin)
-        let scaleFactor = (parentBoxWidth - margin) / textWidth;
-        textGeometry.scale(scaleFactor, scaleFactor, scaleFactor);
-
-        // Update size data
-        textWidth = computeBoxSize(textGeometry).x;
-        let textHeight = computeBoxSize(textGeometry).y;
-
-        // Handle label which is too small due to scaling
-        if (textHeight < minTextHeight) {
-          // Shorten label to reach minimal text height, 
-          // Accounting for later added "..." to label by substracting '3'
-          let labelLength = Math.max(Math.round(labelString.length * (textHeight / minTextHeight) - 3), minTextLength);
-          labelString = shortenString(labelString, labelLength);
-
-          // Update geometry and mesh based upon new label text
-          textGeometry = new THREE.TextGeometry(labelString, {
-            font,
-            size: textSize,
-            height: textHeight,
-            curveSegments
-          });
-          textMesh.geometry = textGeometry;
-
-          // Scale shortened label according to parent component size
-          textWidth = computeBoxSize(textGeometry).x;
-          scaleFactor = (parentBoxWidth - margin) / textWidth;
-          textGeometry.scale(scaleFactor, scaleFactor, scaleFactor);
-        }
-      }
-
-      // Compute center coordinates of parent box
-      const centerParentBox = new THREE.Vector3();
-      textGeometry.center();
-      bBoxParent.getCenter(centerParentBox);
-
-      // Set position and rotation
-      if (opened) {
-        textMesh.position.x = bBoxParent.min.x + 2;
-        textMesh.position.y = bBoxParent.max.y;
-        // Center mesh
-        textMesh.position.z = centerParentBox.z;
-        textMesh.rotation.x = -(Math.PI / 2);
-        textMesh.rotation.z = -(Math.PI / 2);
-      } else {
-        textMesh.position.x = centerParentBox.x;
-        textMesh.position.y = bBoxParent.max.y;
-        textMesh.position.z = centerParentBox.z;
-        textMesh.rotation.x = -(Math.PI / 2);
-
-        if (type === 'clazz') {
-          textMesh.rotation.z = -(Math.PI / 3);
-        } else {
-          textMesh.rotation.z = -(Math.PI / 4);
-        }
-      }
-
-      // Internal user-defined type
-      textMesh.userData = {
-        type: 'label',
-        name: labelString,
-        parentPos: worldParent
-      };
-
-      // Add labels
-      let labels: any = this.get('labels');
-      if (labels) {
-        labels.push(textMesh);
-        parentObject.add(textMesh);
-      }
-    }
-
-    /**
-     * Updates bounding box of geometry and returns respective dimensions
-     */
-    function computeBoxSize(geometry: THREE.Geometry | THREE.BufferGeometry) {
-      geometry.computeBoundingBox();
-      let boxDimensions = new THREE.Vector3();
-      geometry.boundingBox.getSize(boxDimensions);
-      return { x: boxDimensions.x, y: boxDimensions.y, z: boxDimensions.z };
-    }
+  // Foundation is labeled like an opened component
+  if (boxMesh instanceof FoundationMesh || boxMesh.opened) {
+    // Position Label just above the bottom edge
+    label.position.x = -boxMesh.geometry.parameters.width / 2 + foundationOffset / boxMesh.width;
+  } else {
+    label.position.x = 0;
   }
+}
 
-});
+/**
+ * Creates a label and adds it at a calculated position to the given
+ * component or foundation mesh
+ *
+ * @param boxMesh The mesh which shall be labeled
+ * @param font Desired font of the text
+ * @param color Desired color of the text
+ * @param minHeight Minimal height of font
+ * @param minLength Minimal length (#letters) of text. More important than minHeight
+ * @param scalar Allows to scale text size additionally
+ */
+export function addBoxTextLabel(boxMesh: ComponentMesh|FoundationMesh, font: THREE.Font,
+  color: THREE.Color, minHeight = 1.5, minLength = 4, scalar = 1, replace = false) {
+  if (boxMesh.labelMesh && !replace) return;
+  const labelMesh = new ComponentLabelMesh(boxMesh, font, color, minHeight, minLength);
+  labelMesh.computeLabel(boxMesh, boxMesh.dataModel.name, scalar);
+
+  boxMesh.labelMesh = labelMesh;
+  boxMesh.add(labelMesh);
+
+  positionBoxLabel(boxMesh);
+}
+
+/**
+ * Creates a label and adds it at a calculated position to the given clazz mesh
+ *
+ * @param clazzMesh The mesh which shall be labeled
+ * @param font Desired font of the text
+ * @param color Desired color of the text
+ * @param size Size of text
+ */
+export function addClazzTextLabel(clazzMesh: ClazzMesh, font: THREE.Font,
+  color: THREE.Color, size = 0.5, replace = false) {
+  if (clazzMesh.labelMesh && !replace) return;
+
+  const text = clazzMesh.dataModel.name;
+
+  const labelMesh = new ClazzLabelMesh(font, text, color, size);
+  clazzMesh.labelMesh = labelMesh;
+
+  // Set label origin to center of clazz mesh
+  labelMesh.geometry.center();
+  // Set y-position just above the clazz mesh
+  labelMesh.position.y = clazzMesh.geometry.parameters.height / 2 + 0.01;
+
+  // Rotate text
+  labelMesh.rotation.x = -(Math.PI / 2);
+  labelMesh.rotation.z = -(Math.PI / 3);
+
+  clazzMesh.add(labelMesh);
+}

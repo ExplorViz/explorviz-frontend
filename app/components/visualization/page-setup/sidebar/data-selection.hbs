@@ -1,0 +1,16 @@
+<div>
+  <button
+    type="button"
+    class="btn btn-outline-dark"
+    title="Close Sidebar"
+    aria-label="Close"
+    {{on "click" @closeDataSelection}}
+  >
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<EmberScrollable>
+  <div class="pr-3 pl-3 pb-3">
+    {{yield}}
+  </div>
+</EmberScrollable>

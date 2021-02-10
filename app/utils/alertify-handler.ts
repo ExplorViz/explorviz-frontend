@@ -3,47 +3,72 @@ import $ from 'jquery';
 declare const alertify: any;
 
 /**
-* TODO
-*
 * @class AlertifyHandler
 *
 * @module explorviz
 */
 export default class AlertifyHandler {
-
   static alertActive = false;
 
-  static showAlertifyError(message:string) {
+  /**
+   * Displays the given message with an error design for 5 seconds.
+   *
+   * @param message Text which is to be displayed
+   */
+  static showAlertifyError(message: string) {
     this.showAlertifyMessageWithDuration(message, 5, 'error');
   }
 
-  static showAlertifyWarning(message:string) {
+  /**
+   * Displays the given message with a warning design for 3 seconds.
+   *
+   * @param message Text which is to be displayed
+   */
+  static showAlertifyWarning(message: string) {
     this.showAlertifyMessageWithDuration(message, 3, 'warning');
   }
 
-  static showAlertifySuccess(message:string) {
+  /**
+   * Displays the given message with a success design for 3 seconds.
+   *
+   * @param message Text which is to be displayed
+   */
+  static showAlertifySuccess(message: string) {
     this.showAlertifyMessageWithDuration(message, 3, 'success');
   }
 
-  static showAlertifyMessage(message:string) {
+  /**
+   * Displays the given message for 3 seconds.
+   *
+   * @param message Text which is to be displayed
+   */
+  static showAlertifyMessage(message: string) {
     this.showAlertifyMessageWithDuration(message, 3);
   }
 
-  static showAlertifyMessageWithDuration(message:string, duration:number, cssClass:string='message') {
-
+  /**
+   * Displays a message with the given text for the specified duration.
+   * Appearance can be customized with a cssClass identifier.
+   *
+   * @param message Text which is to be displayed
+   * @param duration Duration in seconds for which the message should be displayed
+   * @param cssClass Name of a CSS class which determines the appearance of the message
+   */
+  static showAlertifyMessageWithDuration(message: string, duration: number, cssClass: string = 'message') {
     this.alertActive = true;
 
     alertify.notify(message, cssClass, duration, () => {
-
-      // if last dialog, set respective flag
+      // If last dialog, set respective flag
       // This flag is not used atm, but may be used in the future
-      if($('.ajs-message.ajs-message.ajs-visible').length === 0) {
+      if ($('.ajs-message.ajs-message.ajs-visible').length === 0) {
         this.alertActive = false;
-      }            
+      }
     });
-
   }
 
+  /**
+   * Stops the displaying of all currently added messages
+   */
   static closeAlertifyMessages() {
     alertify.dismissAll();
 
@@ -51,4 +76,5 @@ export default class AlertifyHandler {
   }
 }
 
-alertify.set('notifier','position', 'bottom-right');
+// Alert messages appear in the bottom right corner
+alertify.set('notifier', 'position', 'bottom-right');

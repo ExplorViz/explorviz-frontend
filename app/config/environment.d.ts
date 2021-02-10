@@ -1,5 +1,3 @@
-export default config;
-
 /**
  * Type declarations for
  *    import config from './config/environment'
@@ -13,5 +11,20 @@ declare const config: {
   podModulePrefix: string;
   locationType: string;
   rootURL: string;
+  auth0: {
+    clientId: string,
+    domain: string,
+    logoUrl: string,
+    callbackUrl: string,
+    logoutReturnUrl: string,
+    routeAfterLogin: string
+  },
+  backendAddresses: {
+    landscapeService: string,
+    traceService: string,
+    userService: string,
+  },
   APP: any;
 };
+
+export default config;

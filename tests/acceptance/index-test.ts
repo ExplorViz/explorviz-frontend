@@ -1,13 +1,12 @@
-import { test } from 'qunit';
-import moduleForAcceptance from 'explorviz-frontend/tests/helpers/module-for-acceptance';
+import { module, test } from 'qunit';
+import { visit, currentURL } from '@ember/test-helpers';
+import { setupApplicationTest } from 'ember-qunit';
 
-moduleForAcceptance('Acceptance | index');
+module('Acceptance | index', function(hooks) {
+  setupApplicationTest(hooks);
 
-test('visiting /index', function(assert) {
-  visit('/index');
-
-  andThen(function() {
-    assert.equal(currentURL(), '/login', "Index route replaces current URL " + 
-      "with login route.");
+  test('visiting /index', async function(assert) {
+    await visit('/index');
+    assert.equal(currentURL(), '/login', "Index route replaces current URL with login route.");
   });
 });

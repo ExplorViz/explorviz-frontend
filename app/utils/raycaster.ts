@@ -1,60 +1,36 @@
-import Object from '@ember/object';
-import THREE from "three";
+import THREE from 'three';
 
-export default Object.extend({
+export default class Raycaster extends THREE.Raycaster {
+  /**
+   * Calculate objects which intersect the ray - given by coordinates and camera
+   *
+   * @param coords x- and y-coordinates of the pointer, e.g. a mouse
+   * @param camera Camera - contains view information
+   * @param possibleObjects Objects to check for raycasting
+   */
+  raycasting(
+    coords: {x: number, y: number},
+    camera: THREE.Camera,
+    possibleObjects: THREE.Object3D[],
+    raycastFilter: ((object: THREE.Intersection) => boolean) | undefined,
+  ) {
+    this.setFromCamera(coords, camera);
 
-  raycaster: null,
+    // Calculate objects intersecting the picking ray
+    const intersections = this.intersectObjects(possibleObjects, true);
 
-  landscapeObjects: null,
-  applicationObjects: null,
-  objectCatalog: null,
+    let visibleObjects = intersections.filter(((intersection) => intersection.object.visible));
 
-  init() {
-    this._super(...arguments);
-
-    this.set('landscapeObjects', ['system', 'nodegroup', 'node', 'application', 'applicationcommunication']);
-    this.set('applicationObjects', ['component', 'clazz', 'drawableclazzcommunication']);
-    this.set('objectCatalog', 'landscapeObjects');
-    this.set('raycaster', new THREE.Raycaster());
-  },
-
-
-  raycasting(origin: THREE.Vector3, direction: THREE.Vector3, camera: THREE.Camera, possibleObjects: THREE.Object3D[]): THREE.Object3D | null {
-    const raycaster: any = this.get('raycaster');
-    if (!raycaster) {
-      return null;
+    if (raycastFilter) {
+      visibleObjects = visibleObjects.filter(raycastFilter);
     }
 
-    if (camera) {
-      // Direction = mouse
-      raycaster.setFromCamera(direction, camera);
-    } else if (origin) {
-      // Vr-raycasting, e.g. ray origin is Vive controller
-      raycaster.set(origin, direction);
+    // Returns the nearest hit object if one exists
+    if (visibleObjects.length > 0) {
+      return visibleObjects[0];
     }
 
-    // Calculate objects intersecting the picking ray (true => recursive)
-    const intersections = raycaster.intersectObjects(possibleObjects,
-      true);
-
-    if (intersections.length > 0) {
-      const result = intersections.filter((obj: any) => {
-        if (obj.object.userData.model) {
-          const modelName = obj.object.userData.model.constructor.modelName;
-          let objectCatalog: any = this.get('objectCatalog');
-          if (objectCatalog) {
-            return this.get(objectCatalog).includes(modelName);
-          }
-        }
-      });
-
-      if (result.length <= 0) {
-        return null;
-      } else {
-        return result[0];
-      }
-    }
+    // Return null to indicate that no object was found
     return null;
   }
-
-});
+}

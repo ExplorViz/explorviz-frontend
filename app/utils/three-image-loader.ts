@@ -1,59 +1,49 @@
-import Object from '@ember/object';
-import THREE from "three";
+import THREE from 'three';
+import LogoMesh from 'explorviz-frontend/view-objects/3d/logo-mesh';
 
-export default Object.extend({
+export default class ThreeImageLoader {
+  // Used for efficient re-use and access of logos
+  logoCache: Map<string, THREE.Texture> = new Map();
 
-  logos: null,
+  // Class that actually is loading the texture
+  textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
 
-  init() {
-    this._super(...arguments);
-    this.set('logos', {});
-  },
+  /**
+   * Creates a LogoMesh by using a cached texture or loading a new one with
+   * the passed parameters and adds it to the given parent.
+   *
+   * @param position Desired position of the picture
+   * @param width Width of the picture in px
+   * @param height Height of the picture in px
+   * @param textureName Name of the .png file which contains the desired image
+   * @param parent Object3D to which the picture is added
+   */
+  createPicture(position: THREE.Vector3, width: number, height: number,
+    textureName: string, parent: THREE.Object3D): void {
+    const logo = this.logoCache.get(textureName);
 
-  createPicture(x: number, y: number, z: number, width: number, height: number, textureName: string, parent: THREE.Object3D, type: string): THREE.Mesh | null {
-    let logos = this.get('logos');
-    if (!logos) {
-      return null;
+    /**
+     * Instantiates a LogoMesh with the given texture and adds it to the object.
+     * @param texture Texture for the LogoMesh
+     * @param object New parent for the created LogoMesh
+     */
+    function createAndAddLogoMesh(texture: THREE.Texture, object: THREE.Object3D) {
+      const logoMesh = new LogoMesh(texture, width, height);
+      logoMesh.position.copy(position);
+
+      object.add(logoMesh);
     }
 
-    if (logos[textureName]) {
-      const material = new THREE.MeshBasicMaterial({
-        map: logos[textureName],
-        transparent: true
-      });
+    // Use cached texture for logo if one exists
+    if (logo) {
+      createAndAddLogoMesh(logo, parent);
+    // Load new texture and create logo
+    } else {
+      this.textureLoader.load(`/images/logos/${textureName}.png`, (texture) => {
+        this.logoCache.set(textureName, texture);
 
-      const geo = new THREE.PlaneGeometry(width, height);
-
-      const plane = new THREE.Mesh(geo, material);
-      plane.position.set(x, y, z);
-      parent.add(plane);
-      plane.userData['type'] = type;
-      return plane;
-    }
-    else {
-      new THREE.TextureLoader().load('/images/logos/' + textureName + '.png', (texture) => {
-        let logos: any = this.get('logos');
-        if (!logos) {
-          return null;
-        }
-
-        const material = new THREE.MeshBasicMaterial({
-          map: texture,
-          transparent: true
-        });
-        const plane = new THREE.Mesh(new THREE.PlaneGeometry(width, height),
-          material);
-
-        plane.position.set(x, y, z);
-        parent.add(plane);
-        plane.userData['type'] = type;
-
-        logos[textureName] = texture;
-
-        return plane;
+        createAndAddLogoMesh(this.logoCache.get(textureName) as THREE.Texture, parent);
       });
     }
-    return null;
   }
-
-});
+}

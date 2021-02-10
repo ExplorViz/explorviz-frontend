@@ -1,98 +1,131 @@
-import Component from '@ember/component';
-import Plotly from 'plotly.js-dist';
+import { action } from '@ember/object';
+import Component from '@glimmer/component';
 import debugLogger from 'ember-debug-logger';
-import Timestamp from 'explorviz-frontend/models/timestamp';
-import { get, set } from '@ember/object';
+import { Timestamp } from 'explorviz-frontend/services/repos/timestamp-repository';
+import Plotly from 'plotly.js-dist';
 
-interface MarkerStates {
+interface IMarkerStates {
   [timestampId: string]: {
     color: string;
     size: number;
     emberModel: Timestamp;
-  };  
+  };
 }
 
-export default class PlotlyTimeline extends Component.extend({
-}) {
+interface IArgs {
+  timestamps?: Timestamp[];
+  defaultMarkerColor?: string;
+  defaultMarkerSize?: number;
+  highlightedMarkerColor?: string;
+  highlightedMarkerSize?: number;
+  selectionCount?: number;
+  slidingWindowLowerBoundInMinutes?: number;
+  slidingWindowUpperBoundInMinutes?: number;
+  setChildReference?(timeline: PlotlyTimeline): void;
+  clicked?(selectedTimestamps: Timestamp[]): void;
+}
 
-  // BEGIN user-set variables
-  readonly timestamps : Timestamp[] = [];
+export default class PlotlyTimeline extends Component<IArgs> {
+  // BEGIN template-argument getters for default values
+  get defaultMarkerColor() {
+    return this.args.defaultMarkerColor || '#1f77b4';
+  }
 
-  readonly setChildReference : any = null;
+  get defaultMarkerSize() {
+    const fallbackValue = 8;
+    return this.args.defaultMarkerSize || fallbackValue;
+  }
 
-  readonly defaultMarkerColor = "#1f77b4";
-  readonly defaultMarkerSize = 8;
+  get highlightedMarkerColor() {
+    return this.args.highlightedMarkerColor || 'red';
+  }
 
-  readonly highlightedMarkerColor = "red";  
-  readonly highlightedMarkerSize = 12;
+  get highlightedMarkerSize() {
+    const fallbackValue = 12;
+    return this.args.highlightedMarkerSize || fallbackValue;
+  }
 
-  readonly selectionCount = 1;
+  get selectionCount() {
+    return this.args.selectionCount || 1;
+  }
 
-  readonly slidingWindowLowerBoundInMinutes = 4;
-  readonly slidingWindowUpperBoundInMinutes = 4;
-  // END user-set variables
+  get slidingWindowLowerBoundInMinutes() {
+    const fallbackValue = 4;
+    return this.args.slidingWindowLowerBoundInMinutes || fallbackValue;
+  }
 
-  readonly _debug = debugLogger();
+  get slidingWindowUpperBoundInMinutes() {
+    const fallbackValue = 4;
+    return this.args.slidingWindowUpperBoundInMinutes || fallbackValue;
+  }
 
-  _initDone = false;  
+  get timestamps() {
+    return this.args.timestamps || [];
+  }
+  // END template-argument getters for default values
 
-  _oldPlotlySlidingWindow = {};
-  _userSlidingWindow = null;  
+  readonly debug = debugLogger();
+
+  initDone = false;
+
+  oldPlotlySlidingWindow = { min: 0, max: 0 };
+
+  userSlidingWindow = null;
 
   // variable used for output when clicked
-  _selectedTimestamps : Timestamp[] = [];
-    
-  _markerState : MarkerStates = {};  
+  selectedTimestamps: Timestamp[] = [];
+
+  markerState: IMarkerStates = {};
+
+  timelineDiv: any;
 
   // BEGIN Ember Div Events
-  mouseEnter() {
-    const plotlyDiv : any = document.getElementById("plotlyDiv");
-
-    // if user hovers over plotly, save his 
-    // sliding window, so that updating the 
+  @action
+  handleMouseEnter(plotlyDiv: any) {
+    // if user hovers over plotly, save his
+    // sliding window, so that updating the
     // plot won't modify his current viewport
-    if(plotlyDiv && plotlyDiv.layout) {
-      set(this, "_userSlidingWindow", plotlyDiv.layout);
+    if (plotlyDiv && plotlyDiv.layout) {
+      this.userSlidingWindow = plotlyDiv.layout;
     }
-  }  
+  }
 
-  mouseLeave() {
-    set(this, "_userSlidingWindow", null);
+  @action
+  handleMouseLeave() {
+    this.userSlidingWindow = null;
   }
   // END Ember Div Events
 
-
-  // @Override
-  didRender() {
-    this._super(...arguments);
-
+  @action
+  didRender(plotlyDiv: any) {
     // register this component at its parent if set via template
-    const parentFunction = get(this, "setChildReference");
-    if(parentFunction) {
+    const parentFunction = this.args.setChildReference;
+    if (parentFunction) {
       parentFunction(this);
     }
 
-    if(this._initDone) {
-      this.extendPlotlyTimelineChart(get(this, "timestamps"));
+    this.timelineDiv = plotlyDiv;
+
+    if (this.initDone) {
+      this.extendPlotlyTimelineChart(this.timestamps);
     } else {
-      this.setupPlotlyTimelineChart(get(this, "timestamps"));
-      if(get(this, "_initDone")) {
+      this.setupPlotlyTimelineChart(this.timestamps);
+      if (this.initDone) {
         this.setupPlotlyListener();
-      }      
+      }
     }
-  };
+  }
 
   setupPlotlyListener() {
-    const plotlyDiv : any = document.getElementById("plotlyDiv");
-    const dragLayer : any = document.getElementsByClassName('nsewdrag')[0];
+    const dragLayer: any = document.getElementsByClassName('nsewdrag')[0];
 
-    if(plotlyDiv && plotlyDiv.layout) {
+    const plotlyDiv = this.timelineDiv;
 
-      const self : any = this;
+    if (plotlyDiv && plotlyDiv.layout) {
+      const self: PlotlyTimeline = this;
 
       // singe click
-      plotlyDiv.on('plotly_click', function(data : any){
-
+      plotlyDiv.on('plotly_click', (data: any) => {
         // https://plot.ly/javascript/reference/#scatter-marker
 
         const pn = data.points[0].pointNumber;
@@ -100,319 +133,333 @@ export default class PlotlyTimeline extends Component.extend({
         const numberOfPoints = data.points[0].fullData.x.length;
 
         let colors = data.points[0].fullData.marker.color;
-        let sizes = data.points[0].fullData.marker.size;        
+        let sizes = data.points[0].fullData.marker.size;
 
         // reset old selection, since maximum selection value is achieved
         // and user clicked on a new point
-        if(get(self, "_selectedTimestamps").length == get(self, "selectionCount")) {
-
+        if (self.selectedTimestamps.length === self.selectionCount) {
           self.resetSelectionInStateObjects();
-          
-          colors = Array(numberOfPoints).fill(get(self, "defaultMarkerColor"));
-          sizes = Array(numberOfPoints).fill(get(self, "defaultMarkerSize"));   
+
+          colors = Array(numberOfPoints).fill(self.defaultMarkerColor);
+          sizes = Array(numberOfPoints).fill(self.defaultMarkerSize);
         }
 
-        const highlightedMarkerColor = get(self, "highlightedMarkerColor");
-        const highlightedMarkerSize = get(self, "highlightedMarkerSize");
+        const { highlightedMarkerSize, highlightedMarkerColor } = self;
 
         colors[pn] = highlightedMarkerColor;
-        sizes[pn] = highlightedMarkerSize;        
+        sizes[pn] = highlightedMarkerSize;
 
-        const timestampId = data.points[0].data.timestampId[pn];        
-             
-        get(self, "_markerState")[timestampId].color = highlightedMarkerColor;
-        get(self, "_markerState")[timestampId].size = highlightedMarkerSize;
+        const timestampId = data.points[0].data.timestampId[pn];
 
-        var update = {'marker':{color: colors, size: sizes}};
+        self.markerState[timestampId].color = highlightedMarkerColor;
+        self.markerState[timestampId].size = highlightedMarkerSize;
+
+        const update = { marker: { color: colors, size: sizes } };
 
         // trace number, necessary for the restyle function
         const tn = data.points[0].curveNumber;
-        Plotly.restyle('plotlyDiv', update, [tn]);
+        Plotly.restyle(plotlyDiv, update, [tn]);
 
-        get(self, "_selectedTimestamps").push(get(self, "_markerState")[timestampId].emberModel);
+        self.selectedTimestamps.push(self.markerState[timestampId].emberModel);
 
-        // Check if component should pass the selected timestamps 
+        // Check if component should pass the selected timestamps
         // to its parent
-        if(get(self, "selectionCount") > 1) {
-
-          if(get(self, "_selectedTimestamps").length == get(self, "selectionCount")) {
+        if (self.selectionCount > 1) {
+          if (self.selectedTimestamps.length === self.selectionCount) {
             // closure action
-            self.clicked(get(self, "_selectedTimestamps"));
+            if (self.args.clicked) self.args.clicked(self.selectedTimestamps);
           }
-
-        } else {
+        } else if (self.args.clicked) {
           // closure action
-          self.clicked(get(self, "_selectedTimestamps"))
-        }        
+          self.args.clicked(self.selectedTimestamps);
+        }
       });
 
       // double click
-      plotlyDiv.on('plotly_doubleclick', function() {
-        const min = get(self, "_oldPlotlySlidingWindow.min");
-        const max = get(self, "_oldPlotlySlidingWindow.max");
-        const update = self.getPlotlySlidingWindowUpdateObject(min, max);
-        Plotly.relayout('plotlyDiv', update);
+      plotlyDiv.on('plotly_doubleclick', () => {
+        const { min, max } = self.oldPlotlySlidingWindow;
+        const update = PlotlyTimeline.getPlotlySlidingWindowUpdateObject(min, max);
+        Plotly.relayout(plotlyDiv, update);
       });
 
       // Show cursor when hovering data point
-      if(dragLayer) {
-        plotlyDiv.on('plotly_hover', function(){
+      if (dragLayer) {
+        plotlyDiv.on('plotly_hover', () => {
           dragLayer.style.cursor = 'pointer';
         });
-        
-        plotlyDiv.on('plotly_unhover', function(){
+
+        plotlyDiv.on('plotly_unhover', () => {
           dragLayer.style.cursor = '';
         });
 
-        plotlyDiv.on('plotly_relayouting', function(){
-          // if user drags the plot, save his 
-          // sliding window, so that updating the 
+        plotlyDiv.on('plotly_relayouting', () => {
+          // if user drags the plot, save his
+          // sliding window, so that updating the
           // plot won't modify his current viewport
-          if(plotlyDiv && plotlyDiv.layout) {
-            set(self, "_userSlidingWindow", plotlyDiv.layout);
+          if (plotlyDiv && plotlyDiv.layout) {
+            self.userSlidingWindow = plotlyDiv.layout;
           }
         });
       }
-    }    
-  };
+    }
+  }
 
   // BEGIN Plot Logic
 
-  setupPlotlyTimelineChart(timestamps : Timestamp[]) {
-
-    if(!timestamps || timestamps.length == 0) {
+  setupPlotlyTimelineChart(timestamps: Timestamp[]) {
+    if (timestamps.length === 0) {
+      this.createDummyTimeline();
       return;
     }
 
-    const data = this.getUpdatedPlotlyDataObject(timestamps, get(this, "_markerState"));    
+    const data = this.getUpdatedPlotlyDataObject(timestamps, this.markerState);
 
-    const latestTimestamp : any = timestamps.lastObject;
-    const latestTimestampValue = new Date(get(latestTimestamp, 'timestamp'));
+    const latestTimestamp = timestamps[timestamps.length - 1];
+    const latestTimestampValue = new Date(latestTimestamp.timestamp);
 
-    const windowInterval = this.getSlidingWindowInterval(latestTimestampValue, get(this, "slidingWindowLowerBoundInMinutes"), get(this, "slidingWindowUpperBoundInMinutes"));
+    const windowInterval = PlotlyTimeline.getSlidingWindowInterval(latestTimestampValue,
+      this.slidingWindowLowerBoundInMinutes, this.slidingWindowUpperBoundInMinutes);
 
-    const layout = this.getPlotlyLayoutObject(windowInterval.min, windowInterval.max);
+    const layout = PlotlyTimeline.getPlotlyLayoutObject(windowInterval.min, windowInterval.max);
 
-    set(this, "_oldPlotlySlidingWindow", windowInterval);    
+    this.oldPlotlySlidingWindow = windowInterval;
 
     Plotly.newPlot(
-      'plotlyDiv',
-      data, 
+      this.timelineDiv,
+      data,
       layout,
-      this.getPlotlyOptionsObject()
+      PlotlyTimeline.getPlotlyOptionsObject(),
     );
 
-    this._initDone = true;
+    this.initDone = true;
+  }
 
-  };
-
-
-  extendPlotlyTimelineChart(timestamps : Timestamp[]) {
-
-    if(!timestamps || timestamps.length == 0) {
+  extendPlotlyTimelineChart(timestamps: Timestamp[]) {
+    if (timestamps.length === 0) {
       return;
     }
 
-    let data : any = this.getUpdatedPlotlyDataObject(timestamps, get(this, "_markerState"));
-    
-    const latestTimestamp : any = timestamps.lastObject;
-    const latestTimestampValue = new Date(get(latestTimestamp, 'timestamp'));
+    const data: any = this.getUpdatedPlotlyDataObject(timestamps, this.markerState);
 
-    const windowInterval = this.getSlidingWindowInterval(latestTimestampValue, get(this, "slidingWindowLowerBoundInMinutes"), get(this, "slidingWindowUpperBoundInMinutes"));    
+    const latestTimestamp: Timestamp = timestamps[timestamps.length - 1];
+    const latestTimestampValue = new Date(latestTimestamp.timestamp);
 
-    const layout = get(this, "_userSlidingWindow") ? get(this, "_userSlidingWindow") : this.getPlotlyLayoutObject(windowInterval.min, windowInterval.max);
+    const windowInterval = PlotlyTimeline.getSlidingWindowInterval(latestTimestampValue,
+      this.slidingWindowLowerBoundInMinutes, this.slidingWindowUpperBoundInMinutes);
 
-    set(this, "_oldPlotlySlidingWindow", windowInterval);
+    const layout = this.userSlidingWindow ? this.userSlidingWindow
+      : PlotlyTimeline.getPlotlyLayoutObject(windowInterval.min, windowInterval.max);
+
+    this.oldPlotlySlidingWindow = windowInterval;
 
     Plotly.react(
-      'plotlyDiv',
+      this.timelineDiv,
       data,
       layout,
-      this.getPlotlyOptionsObject()
+      PlotlyTimeline.getPlotlyOptionsObject(),
     );
   }
 
-  continueTimeline(oldSelectedTimestampRecords : Timestamp[]) {
+  continueTimeline(oldSelectedTimestampRecords: Timestamp[]) {
     this.resetHighlingInStateObjects();
 
     // call this to initialize the internal marker state variable
-    this.getUpdatedPlotlyDataObject(get(this, "timestamps"), get(this, "_markerState"));
+    this.getUpdatedPlotlyDataObject(this.timestamps, this.markerState);
 
-    const highlightedMarkerColor = get(this, "highlightedMarkerColor");
-    const highlightedMarkerSize = get(this, "highlightedMarkerSize");     
+    const { highlightedMarkerColor, highlightedMarkerSize } = this;
 
-    for(const timestamp of oldSelectedTimestampRecords) { 
-      const timestampId = timestamp.get("id");        
-          
-      get(this, "_markerState")[timestampId].color = highlightedMarkerColor;
-      get(this, "_markerState")[timestampId].size = highlightedMarkerSize;
-      get(this, "_markerState")[timestampId].emberModel = timestamp;
+    oldSelectedTimestampRecords.forEach((timestamp) => {
+      const timestampId = timestamp.id;
 
-      get(this, "_selectedTimestamps").push(get(this, "_markerState")[timestampId].emberModel);
-    }    
+      this.markerState[timestampId].color = highlightedMarkerColor;
+      this.markerState[timestampId].size = highlightedMarkerSize;
+      this.markerState[timestampId].emberModel = timestamp;
 
-    this.extendPlotlyTimelineChart(get(this, "timestamps"));
+      this.selectedTimestamps.push(this.markerState[timestampId].emberModel);
+    });
+
+    this.extendPlotlyTimelineChart(this.timestamps);
   }
 
   resetHighlighting() {
     this.resetHighlingInStateObjects();
-    this.extendPlotlyTimelineChart(get(this, "timestamps"));
+    this.extendPlotlyTimelineChart(this.timestamps);
+  }
+
+  createDummyTimeline() {
+    const minRange = 0;
+    const maxRange = 90;
+    Plotly.newPlot(
+      this.timelineDiv,
+      null,
+      PlotlyTimeline.getPlotlyLayoutObject(minRange, maxRange),
+      PlotlyTimeline.getPlotlyOptionsObject(),
+    );
   }
 
   // END Plot Logic
 
   // BEGIN Helper functions
 
-  getPlotlySlidingWindowUpdateObject(minTimestamp : number, maxTimestamp : number) : {xaxis : {type: 'date', range: number[], title: {}} } {
+  static getPlotlySlidingWindowUpdateObject(minTimestamp: number, maxTimestamp: number):
+  {xaxis: {type: 'date', range: number[], title: {}} } {
     return {
       xaxis: {
-        type: 'date',
-        range: [minTimestamp,maxTimestamp],
+        range: [minTimestamp, maxTimestamp],
         title: {
-          text: 'Time',
           font: {
+            color: '#7f7f7f',
             size: 16,
-            color: '#7f7f7f'
-          }
-        }
-      }        
+          },
+          text: 'Time',
+        },
+        type: 'date',
+      },
     };
-  };
+  }
 
-  hoverText(x : Date[] ,y : number[]) {
+  static hoverText(x: Date[], y: number[]) {
     return x.map((xi, i) => `<b>Time</b>: ${xi}<br><b>Requests</b>: ${y[i]}<br>`);
-  };
+  }
 
-  getSlidingWindowInterval(t : Date, lowerBound : number, upperBound : number) : {"min" : number, "max" : number} {
+  static getSlidingWindowInterval(t: Date, lowerBound: number, upperBound: number):
+  { min: number, max: number } {
     const minTimestamp = t.setMinutes(t.getMinutes() - lowerBound);
     const maxTimestamp = t.setMinutes(t.getMinutes() + upperBound);
 
-    return {"min" : minTimestamp, "max": maxTimestamp};
-  };
+    return { min: minTimestamp, max: maxTimestamp };
+  }
 
-  getPlotlyLayoutObject(minRange:number, maxRange:number) : {} {
+  static getPlotlyLayoutObject(minRange: number, maxRange: number): {} {
     return {
       dragmode: 'pan',
-      hovermode: 'closest',
       hoverdistance: 10,
-      yaxis: { 
-        fixedrange: true,
-        title: {
-          text: 'Requests',
-          font: {
-            size: 16,
-            color: '#7f7f7f'
-          }
-        }
-      },
-      xaxis: {
-        type: 'date',
-        range: [minRange,maxRange],
-        title: {
-          text: 'Time',
-          font: {
-            size: 16,
-            color: '#7f7f7f'
-          }
-        }
-      },
+      hovermode: 'closest',
       margin: {
         b: 40,
+        pad: 5,
         t: 20,
-        pad: 4
-      }
+        r: 40,
+      },
+      xaxis: {
+        range: [minRange, maxRange],
+        title: {
+          font: {
+            color: '#7f7f7f',
+            size: 16,
+          },
+          text: 'Time',
+        },
+        type: 'date',
+      },
+      yaxis: {
+        fixedrange: true,
+        title: {
+          font: {
+            color: '#7f7f7f',
+            size: 16,
+          },
+          text: 'Requests',
+        },
+      },
     };
-  };
+  }
 
-  getUpdatedPlotlyDataObject(timestamps : Timestamp[], markerStates : MarkerStates) : [{}] {
+  getUpdatedPlotlyDataObject(timestamps: Timestamp[], markerStates: IMarkerStates): [{}] {
+    const colors: string[] = [];
+    const sizes: number[] = [];
 
-    const colors = [];
-    const sizes = [];
+    const x: Date[] = [];
+    const y: number[] = [];
 
-    const x : Date[] = [];
-    const y : number[] = [];
+    const timestampIds: string[] = [];
 
-    const timestampIds : string[] = [];
+    timestamps.forEach((timestamp) => {
+      const timestampId = timestamp.id;
 
-    for(const timestamp of timestamps) {
-      const timestampId = timestamp.get('id');
-
-      x.push(new Date(timestamp.get('timestamp')));
-      y.push(timestamp.get('totalRequests'));
+      x.push(new Date(timestamp.timestamp));
+      y.push(timestamp.totalRequests);
 
       const markerState = markerStates[timestampId];
-      
-      if(markerState) {
+
+      if (markerState) {
         // already plotted -> take old values
         colors.push(markerState.color);
         sizes.push(markerState.size);
       } else {
         // new point
-        const defaultColor = get(this, "defaultMarkerColor");
-        const defaultSize = get(this, "defaultMarkerSize");
+        const defaultColor = this.defaultMarkerColor;
+        const defaultSize = this.defaultMarkerSize;
 
         colors.push(defaultColor);
         sizes.push(defaultSize);
 
-        markerStates[timestampId] = {color: defaultColor, size: defaultSize, emberModel: timestamp};
-      }      
+        // eslint-disable-next-line
+        markerStates[timestampId] = {
+          color: defaultColor,
+          emberModel: timestamp,
+          size: defaultSize,
+        };
+      }
       timestampIds.push(timestampId);
-    }
+    });
 
-    
-    set(this, "_markerState", markerStates);
+    this.markerState = markerStates;
 
-    return this.getPlotlyDataObject(x, y, colors, sizes, timestampIds);
+    return PlotlyTimeline.getPlotlyDataObject(x, y, colors, sizes, timestampIds);
   }
 
-  getPlotlyDataObject(dates : Date[], requests : number[], colors: string[], sizes: number[], timestampIds: string[]) : [{}] {
-
+  static getPlotlyDataObject(
+    dates: Date[],
+    requests: number[],
+    colors: string[],
+    sizes: number[],
+    timestampIds: string[],
+  ): [{}] {
     return [
       {
-        hoverinfo: 'text',
-        type: 'scattergl',
-        mode:'lines+markers',
         fill: 'tozeroy',
-        marker: {color: colors, size: sizes},
+        hoverinfo: 'text',
+        hoverlabel: {
+          align: 'left',
+        },
+        marker: { color: colors, size: sizes },
+        mode: 'lines+markers',
+        text: PlotlyTimeline.hoverText(dates, requests),
+        timestampId: timestampIds,
+        type: 'scattergl',
         x: dates,
         y: requests,
-        timestampId: timestampIds,
-        hoverlabel: {
-          align: "left"
-        },
-        text: this.hoverText(dates, requests) 
-      }
+      },
     ];
   }
 
   resetHighlingInStateObjects() {
-    set(this, "_selectedTimestamps", []);
-    set(this, "_markerState", {});
+    this.selectedTimestamps = [];
+    this.markerState = {};
   }
 
   resetSelectionInStateObjects() {
-    const selTimestamps : Timestamp[] = get(this, "_selectedTimestamps");
+    const selTimestamps: Timestamp[] = this.selectedTimestamps;
 
-    const defaultMarkerColor = get(this, "defaultMarkerColor");
-    const defaulMarkerSize = get(this, "defaultMarkerSize");
+    const { defaultMarkerColor, defaultMarkerSize } = this;
 
-    for(const t of selTimestamps) {
-      get(this, "_markerState")[get(t, "id")].color = defaultMarkerColor;
-      get(this, "_markerState")[get(t, "id")].size = defaulMarkerSize;
-    }
+    selTimestamps.forEach((t) => {
+      this.markerState[t.id].color = defaultMarkerColor;
+      this.markerState[t.id].size = defaultMarkerSize;
+    });
 
-    set(this, "_selectedTimestamps", []);
+    this.selectedTimestamps = [];
   }
 
-  getPlotlyOptionsObject() : {} {
+  static getPlotlyOptionsObject(): {} {
     return {
       displayModeBar: false,
-      scrollZoom: true,
+      doubleClick: false,
       responsive: true,
-      doubleClick: false
+      scrollZoom: true,
     };
-  };
+  }
 
   // END Helper functions
-
-};
+}

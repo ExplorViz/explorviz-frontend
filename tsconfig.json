@@ -26,16 +26,33 @@
         "tests/*"
       ],
       "explorviz-frontend/*": [
-        "app/*"
+        "app/*",
+        "lib/virtual-reality/app/*"
       ],
       "*": [
         "types/*"
+      ],
+      "virtual-reality": [
+        "lib/virtual-reality/addon"
+      ],
+      "virtual-reality/*": [
+        "lib/virtual-reality/addon/*"
+      ],
+      "virtual-reality/test-support": [
+        "lib/virtual-reality/addon-test-support"
+      ],
+      "virtual-reality/test-support/*": [
+        "lib/virtual-reality/addon-test-support/*"
       ]
     }
   },
   "include": [
     "app/**/*",
     "tests/**/*",
-    "types/**/*"
+    "types/**/*",
+    "lib/virtual-reality/**/*",
+  ],
+  "exclude": [
+    "lib/virtual-reality/addon/utils/lib/**/*"
   ]
 }

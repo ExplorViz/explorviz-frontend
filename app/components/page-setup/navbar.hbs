@@ -1,0 +1,53 @@
+<div
+  class="d-flex flex-row justify-content-between p-3 disable-select pointer-events-none"
+  style="position: absolute; width: 100vw; z-index: 100"
+>
+  <img
+    style="height: 30px"
+    src="images/explorviz-30px.png"
+    alt="ExplorViz"
+    draggable="false"
+  >
+  {{#if this.tokenService.token}}
+    <div id="navbar-token-item" class="pointer-events-all">
+      <LinkTo @route="landscapes" class="d-flex-center">
+        {{svg-jar "key" class="octicon"}}
+        <span>
+          {{!-- {{#if this.tokenService.token.alias}}
+            {{truncate this.tokenService.token.alias 20 true}}
+          {{else}} --}}
+          {{truncate this.tokenService.token.value 20 true}}
+          {{!-- {{/if}} --}}
+        </span>
+      </LinkTo>
+      <BsTooltip @placement="bottom" @delayShow={{1000}} @triggerEvents="hover">
+        <div>
+          <div>ID: {{this.tokenService.token.value}}</div>
+          {{!-- {{#if this.tokenService.token.alias}}
+            <div>Alias: {{this.tokenService.token.alias}}</div>
+          {{/if}}
+          <div>Created: {{this.tokenService.token.creationDate}}</div>
+          <div>Last Updated: {{this.tokenService.token.lastUpdated}}</div> --}}
+        </div>
+      </BsTooltip>
+    </div>
+  {{/if}}
+  <div id="navbar-user-options" class="btn-group pointer-events-all">
+    <div class="dropdown-menu dropdown-menu-right">
+      <button
+        class="dropdown-item"
+        type="button"
+        {{on "click" this.logout}}
+      >
+        Logout
+      </button>
+    </div>
+    <button
+      class="dropdown-toggle d-flex align-items-center navbar-user-button"
+      data-toggle="dropdown"
+      type="button"
+    >
+      {{svg-jar "person" class="octicon"}}<span>{{this.auth.user.nickname}}</span><span class="caret ml-1"></span>
+    </button>
+  </div>
+</div>

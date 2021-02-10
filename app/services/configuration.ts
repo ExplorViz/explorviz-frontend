@@ -1,9 +1,33 @@
 import Service from '@ember/service';
-import { set } from '@ember/object';
+import THREE from 'three';
+import { tracked } from '@glimmer/tracking';
 
-type Colors = {
-  [type:string]: string
-}
+export type LandscapeColors = {
+  system: THREE.Color,
+  nodegroup: THREE.Color,
+  node: THREE.Color,
+  application: THREE.Color,
+  communication: THREE.Color,
+  systemText: THREE.Color,
+  nodeText: THREE.Color,
+  applicationText: THREE.Color,
+  collapseSymbol: THREE.Color,
+  background: THREE.Color
+};
+
+export type ApplicationColors = {
+  foundation: THREE.Color,
+  componentOdd: THREE.Color,
+  componentEven: THREE.Color,
+  clazz: THREE.Color,
+  highlightedEntity: THREE.Color,
+  componentText: THREE.Color,
+  clazzText: THREE.Color,
+  foundationText: THREE.Color,
+  communication: THREE.Color,
+  communicationArrow: THREE.Color,
+  background: THREE.Color
+};
 
 export type ExtensionDescription = {
   id: string,
@@ -14,102 +38,73 @@ export type ExtensionDescription = {
 };
 
 /**
-* The Configuration Service handles color settings for the visualization and configuration extensions
-* @class Configuration-Service
-* @extends Ember.Service
-*/
+ * The Configuration Service handles color settings for the
+ * visualization and configuration extensions
+ * @class Configuration-Service
+ * @extends Ember.Service
+ */
 export default class Configuration extends Service {
-
   /**
-  * Array for component-based settings dialogs. Any extension may push an object  
-  * with the name of it's settings-component and it's title in this array. See 
+  * Array for component-based settings dialogs. Any extension may push an object
+  * with the name of it's settings-component and it's title in this array. See
   * the extension "colorpicker"" for exemplary usage.
   *
   * @property configurationExtensions
   * @type Array
   */
-  configurationExtensions:ExtensionDescription[] = [];
+  configurationExtensions: ExtensionDescription[] = [];
 
   /**
-  * Current colors for landscape visualization
+  * Colors for landscape visualization
   *
   * @property landscapeColors
-  * @type Object
+  * @type LandscapeColors
   */
-  landscapeColors:Colors = {};
+  @tracked
+  landscapeColors: LandscapeColors;
 
   /**
-  * Current colors for application visualization
+  * Colors for application visualization
   *
   * @property applicationColors
-  * @type Object
+  * @type ApplicationColors
   */
-  applicationColors:Colors = {};
+  @tracked
+  applicationColors: ApplicationColors;
 
   /**
-  * Default colors for landscape visualization
-  *
-  * @property landscapeColorsDefault
-  * @type Object
-  */
-  landscapeColorsDefault:Colors = {};
-
-  /**
-  * Default colors for application visualization
-  *
-  * @property applicationColorsDefault
-  * @type Object
-  */
-  applicationColorsDefault:Colors = {};
-
-
+   * Sets default colors
+   */
   constructor() {
     super(...arguments);
-    this.initDefaultColors();
-    this.resetColors();
+
+    this.landscapeColors = {
+      system: new THREE.Color('#c7c7c7'), // grey
+      nodegroup: new THREE.Color('#169e2b'), // dark green
+      node: new THREE.Color('#00bb41'), // green
+      application: new THREE.Color('#3e14a0'), // purple-blue
+      communication: new THREE.Color('#f49100'), // orange
+      systemText: new THREE.Color('#000000'), // black
+      nodeText: new THREE.Color('#ffffff'), // white
+      applicationText: new THREE.Color('#ffffff'), // white
+      collapseSymbol: new THREE.Color('#000000'), // black
+      background: new THREE.Color('#ffffff'), // white
+    };
+
+    this.applicationColors = {
+      foundation: new THREE.Color('#c7c7c7'), // grey
+      componentOdd: new THREE.Color('#169e2b'), // dark green
+      componentEven: new THREE.Color('#00bb41'), // light green
+      clazz: new THREE.Color('#3e14a0'), // purple-blue
+      highlightedEntity: new THREE.Color('#ff0000'), // red
+      componentText: new THREE.Color('#ffffff'), // white
+      clazzText: new THREE.Color('#ffffff'), // white
+      foundationText: new THREE.Color('#000000'), // black
+      communication: new THREE.Color('#f49100'), // orange
+      communicationArrow: new THREE.Color('#000000'), // black
+      background: new THREE.Color('#ffffff'), // white
+    };
   }
-
-  /**
-   * Sets the default visualization colors
-   */
-  initDefaultColors() {
-    set(this, 'landscapeColorsDefault', {
-      system: "rgb(199, 199, 199)",
-      nodegroup: "rgb(22, 158, 43)",
-      node: "rgb(0, 187, 65)",
-      application: "rgb(62, 20, 160)",
-      communication: "rgb(244, 145, 0)",
-      systemText: "rgb(0, 0, 0)",
-      nodeText: "rgb(255, 255, 255)",
-      applicationText: "rgb(255, 255, 255)",
-      collapseSymbol: "rgb(0, 0, 0)",
-      background: "rgb(255, 255, 255)"
-    });
-
-    set(this, 'applicationColorsDefault', {
-      foundation: "rgb(199, 199, 199)",
-      componentOdd: "rgb(22, 158, 43)",
-      componentEven: "rgb(0, 187, 65)",
-      clazz: "rgb(62, 20, 160)",
-      highlightedEntity: "rgb(255, 0, 0)",
-      componentText: "rgb(255, 255, 255)",
-      clazzText: "rgb(255, 255, 255)",
-      foundationText: "rgb(0, 0, 0)",
-      communication: "rgb(244, 145, 0)",
-      communicationArrow: "rgb(0, 0, 0)",
-      background: "rgb(255, 255, 255)"
-    });
-  }
-
-  /**
-   * Resets all visualization colors to default values
-   * Needs to be a deep copy of the object, otherwise the default colors got overridden when the colors are in the extension
-   */
-  resetColors() {
-    set(this, 'landscapeColors', Object.assign({}, this.landscapeColorsDefault));
-    set(this, 'applicationColors', Object.assign({}, this.applicationColorsDefault));
-  }
-
 }
 
 declare module '@ember/service' {

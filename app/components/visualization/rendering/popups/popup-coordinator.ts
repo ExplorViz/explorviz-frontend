@@ -1,38 +1,34 @@
-import Component from '@ember/component';
-import $ from 'jquery';
-import { inject as service } from '@ember/service';
-import AdditionalData from 'explorviz-frontend/services/additional-data';
+import { action } from '@ember/object';
+import Component from '@glimmer/component';
+import { isDrawableClassCommunication } from 'explorviz-frontend/utils/landscape-rendering/class-communication-computer';
+import {
+  Application, Class, isApplication, isClass, isNode, isPackage, Node, Package,
+} from 'explorviz-frontend/utils/landscape-schemes/structure-data';
 
-export default class PopupCoordinator extends Component {
+interface IArgs {
+  popupData: {
+    mouseX: number,
+    mouseY: number,
+    entity: Node | Application | Package | Class
+  };
+}
 
-  tagName = '';
-  
-  @service('additional-data')
-  additionalData!: AdditionalData;
-
-  didRender() {
-    this._super(...arguments);
-
-    if (this.get('additionalData').get('popupContent')) {
-      this.setPopupPosition();
-    }
-  }
-
-  setPopupPosition() {
-    let popupData = this.get('additionalData').get('popupContent');
-
-    const popoverDiv = $('.popover');
+export default class PopupCoordinator extends Component<IArgs> {
+  @action
+  setPopupPosition(popoverDiv: HTMLDivElement) {
+    const { popupData } = this.args;
 
     // Sorrounding div for position calculations
-    const containerDiv = $('#rendering');
+    const containerDiv = popoverDiv.parentElement as HTMLElement;
 
-    let popoverHeight = popoverDiv.height();
-    let popoverWidth = popoverDiv.width();
+    const popoverHeight = popoverDiv.clientHeight;
+    const popoverWidth = popoverDiv.clientWidth;
 
-    let containerWidth = containerDiv.width();
+    const containerWidth = containerDiv.clientWidth;
 
-    if(popoverHeight === undefined || popoverWidth === undefined || containerWidth === undefined)
+    if (popoverHeight === undefined || popoverWidth === undefined || containerWidth === undefined) {
       return;
+    }
 
     const popupTopOffset = popoverHeight + 10;
     const popupLeftOffset = popoverWidth / 2;
@@ -40,26 +36,49 @@ export default class PopupCoordinator extends Component {
     let popupTopPosition = popupData.mouseY - popupTopOffset;
     let popupLeftPosition = popupData.mouseX - popupLeftOffset;
 
-    // Prevent popup positioning on top of rendering canvas => 
+    // Prevent popup positioning on top of rendering canvas =>
     // position under mouse cursor
     if (popupTopPosition < 0) {
-      popupTopPosition = popupData.mouseY + 35;
+      const approximateMouseHeight = 35;
+      popupTopPosition = popupData.mouseY + approximateMouseHeight;
     }
 
-    // Prevent popup positioning right(outside) of rendering canvas => 
+    // Prevent popup positioning right(outside) of rendering canvas =>
     // position at right edge of canvas
     if (popupLeftPosition + popoverWidth > containerWidth) {
-      popupLeftPosition = containerWidth - popoverWidth - 5;
+      const extraPopupMarginFromAtBottom = 5;
+      popupLeftPosition = containerWidth - popoverWidth - extraPopupMarginFromAtBottom;
     }
 
-    // Prevent popup positioning left(outside) of rendering canvas => 
+    // Prevent popup positioning left(outside) of rendering canvas =>
     // position at left edge of canvas
     if (popupLeftPosition < 0) {
       popupLeftPosition = 0;
     }
 
     // Set popup position
-    popoverDiv.css('top', popupTopPosition + 'px');
-    popoverDiv.css('left', popupLeftPosition + 'px');
+    /* eslint-disable no-param-reassign */
+    popoverDiv.style.top = `${popupTopPosition}px`;
+    popoverDiv.style.left = `${popupLeftPosition}px`;
+  }
+
+  get entityType() {
+    if (isNode(this.args.popupData.entity)) {
+      return 'node';
+    }
+    if (isApplication(this.args.popupData.entity)) {
+      return 'application';
+    }
+    if (isClass(this.args.popupData.entity)) {
+      return 'class';
+    }
+    if (isPackage(this.args.popupData.entity)) {
+      return 'package';
+    }
+    if (isDrawableClassCommunication(this.args.popupData.entity)) {
+      return 'drawableClassCommunication';
+    }
+
+    return '';
   }
 }

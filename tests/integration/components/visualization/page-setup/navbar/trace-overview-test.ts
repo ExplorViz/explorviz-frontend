@@ -10,14 +10,14 @@ module('Integration | Component | trace-overview', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`{{visualization/page-setup/navbar/trace-overview}}`);
+    await render(hbs`<Visualization::PageSetup::Navbar::TraceOverview />`);
 
     let textContent = this.element.textContent;
 
     if(textContent === null) {
       assert.ok(null, 'no text content');
     } else {
-      assert.equal(textContent.trim(), '');
+      assert.equal(textContent.trim(), 'Trace Overview');
     }
   });
 });

@@ -1,0 +1,24 @@
+image: node:lts-alpine3.12
+
+cache:
+  paths:
+    - node_modules/
+  
+before_script:
+  - npm install  
+  - npm install -g ember-cli
+  # install chrome for testing
+  - apk add --no-cache chromium --repository=http://dl-3.alpinelinux.org/alpine/edge/main
+
+test:
+  stage: test
+  tags:
+    - exec-docker
+  script: ember test --launch chromium
+
+# - stage: deploy
+#    if: (type = push) AND ((branch = dev-1) OR (branch = master))
+#    skip_cleanup: false
+#    env:
+#      - EMBER_VERSION=release
+#    script: ember build --prod && chmod +x .travis/docker_push.sh && .travis/docker_push.sh

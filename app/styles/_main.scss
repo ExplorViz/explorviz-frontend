@@ -3,34 +3,20 @@ html, body {
   height: 100vh;
 }
 
-body > .ember-view {
+#main-container {
   height: 100%;
   @extend .d-flex;
   @extend .flex-column;
 }
 
-.main-content {
-  overflow: hidden;
-  @extend .ml-3;
-  @extend .mr-3;
-  @extend .mt-5;
-  @extend .mb-3;
-  @extend .flex-grow-1;
-  @extend .d-flex;
-  @extend .flex-column;
-}
-
-.main-content > .row {
-  @extend .flex-grow-1;
-}
-
 #vizspace {
   @extend .d-flex;
   @extend .flex-column;
-  max-height: 100%;
+  height: 100%;
 }
 
 #rendering {
+  @extend .d-flex;
   @extend .flex-grow-1;
   max-height: 100%;
   position: relative;
@@ -55,45 +41,22 @@ body > .ember-view {
   flex-grow: 1;
 }
 
-.explorviz-visualization-navbar {
-  @extend .mb-3;
-}
-
 //Additional classes
-
-.scrollable-extension {
-  max-height: 40%;
-}
-
-.container-shadow:hover {
-  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
-}
 
 .container-word-wrap {
   word-break: break-word;
-}
-
-.cytoscape-container {
-  @extend .d-flex;
-  @extend .flex-grow-1;
-}
-
-.scroll-container {
-  overflow-y: scroll;
-  overflow-x: hidden;
-  max-height: 100%;
 }
 
 .no-horizontal-scroll {
   resize: vertical;
 }
 
-.darker-accordion-header {
-  background-color: #e8e8e8 !important;
-}
-
 .relative {
   position: relative;
+}
+
+.flex-1 {
+  flex: 1;
 }
 
 .explorVizModal {
@@ -110,12 +73,16 @@ body > .ember-view {
   border-radius: 10px;
 }
 
-.inline {
-  display: inline;
+.mt-6 {
+  margin-top: 4rem !important;
 }
 
-.tooltip-component > a {
-  color: #777;
+.border-radius-0 {
+  border-radius: 0 !important;
+}
+
+.inline {
+  display: inline;
 }
 
 /* Custom Scrollbar */
@@ -167,14 +134,23 @@ svg.octicon {
   display: contents!important;
 }
 
-.btn-exp-login {
-  color: #64b5f6;
-  border-color: #64b5f6;
+.btn-primary {
+  color: #fff;
+  background-color: #22497c;
+  border-color: #22497c;
 }
 
-.btn-exp-login:hover {
-  background-color: #9be7ff;
-  border-color: #9be7ff;
+.btn-primary:hover {
+  background-color: #406da7;
+  border-color: #406da7;
+}
+
+.pointer-cursor {
+  cursor: pointer;
+}
+
+.all-unset {
+  all: unset;
 }
 
 @mixin centerSpinners() {
@@ -193,7 +169,6 @@ svg.octicon {
 * { @include centerSpinners(); }
 
 .spinner-center-3-relative {
-  @extend .spinner-border;
-  width: 3rem;
-  height: 3rem;
+  @extend .spinner-center-3;
+  position: relative;
 }

@@ -10,7 +10,7 @@ module('Integration | Component | visualization/page-setup/navbar/application-se
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`{{visualization/page-setup/navbar/application-search}}`);
+    await render(hbs`<Visualization::PageSetup::Navbar::ApplicationSearch />`);
 
     let textContent = this.element.textContent;
 

@@ -1,7 +1,0 @@
-{{#if procezzForDetailView}}
-  {{discovery/procezz-details errorHandling=(action errorHandling) procezz=procezzForDetailView}}
-{{else if agentForDetailView}}
-  {{discovery/agent-details errorHandling=(action errorHandling) agent=agentForDetailView}}
-{{else}}
-  {{discovery/node-overview showDetails=(action showDetailsComponent)}}
-{{/if}}
